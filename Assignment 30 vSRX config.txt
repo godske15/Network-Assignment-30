@@ -1,5 +1,6 @@
 ## Source natting
 /* By Per Dahlstroem */
+/* Changed to fit Simons and Thorsteins own setup */
 version 12.1X47-D15.4;
 system {
     host-name R2;
@@ -9,38 +10,38 @@ system {
     }
 }
 interfaces {
-    ge-0/0/1 {
+    ge-0/0/1 { /* Interface 1 på R2. Dette er port 2 på vSRX_1 routeren */
         unit 0 {
             family inet {
-                address 192.168.11.1/24;
+                address 192.168.11.1/24; /* Her sættes default gateway adressen på interface ge-0/0/1 */
             }
         }
     }
-    ge-0/0/2 {
+    ge-0/0/2 { /* Interface 2 på R2. Dette er port 3 på vSRX_1 routeren */
         unit 0 {
             family inet {
-                address 192.168.12.1/24;
+                address 192.168.12.1/24; /* Her sættes default gateway adressen på interface ge-0/0/2 */
             }
         }
     }
-    ge-0/0/3 {
+    ge-0/0/3 { /* Interface 3 på R2. Dette er port 4 på vSRX_1 routeren */
         unit 0 {
             family inet {
-                address 10.56.16.80/22;
+                address 10.56.16.80/22; /* Her sættes ip-adressen på interface ge-0/0/3. Dette interface er tilkoblingen til internettet */
             }
         }
     }
 }
 routing-options {
     static {
-        route 0.0.0.0/0 next-hop 10.56.16.1;
+        route 0.0.0.0/0 next-hop 10.56.16.1; /* Her sættes default gateway på VMNet8 (R1) fra vSRX_1 routeren (R2). Dvs. at R2 ved hvor den skal sende kommunikation videre til internettet, hvis ikke der har været et match på det lokale netværk. */
     }
 }
 security {
     nat {
         /* NAT changes the source address of egress IP packets */
         source {
-            rule-set trust-to-untrust {
+            rule-set trust-to-untrust { /* Hvis der er forespørgsel fra zonen trust til untrust */
                 from zone trust;
                 to zone untrust;
                 rule rule-any-to-any {
@@ -48,7 +49,7 @@ security {
                         source-address 0.0.0.0/0;
                         destination-address 0.0.0.0/0;
                     }
-                    then {
+                    then { /* Så skal ip-adressen fra source destination igennem PAT (Port Address Translation), således at ip-addressen bliver oversat til en anden ip-addresse. vSRX_1 routeren R2 gemmer den individuelle PCs ip-addresse, således at den ved hvorfra forespørgslen er kommet fra. */
                         source-nat {
                         /* Use egress interface source IP address */
                             interface;
@@ -59,7 +60,7 @@ security {
         }
     }
     policies {
-        from-zone trust to-zone trust {
+        from-zone trust to-zone trust { /* Hvis der er traffik fra zonen trust til zonen trust, så skal al traffik godkendes. */
             policy default-permit {
                 match {
                     source-address any;
@@ -71,7 +72,7 @@ security {
                 }
             }
         }
-        from-zone untrust to-zone trust {
+        from-zone untrust to-zone trust { /* Hvis der er traffik fra zonen untrust til zonen trust, så skal al traffik afvises, medmindre at traffiken er startet i zonen trust. */
             policy default-deny {
                 match {
                     source-address any;
@@ -83,7 +84,7 @@ security {
                 }
             }
         }
-        from-zone trust to-zone untrust {
+        from-zone trust to-zone untrust { /* Hvis der er traffik fra zonen trust til zonen untrust, så skal al traffik godkendes. */
             policy internet-access {
                 match {
                     source-address any;
@@ -99,14 +100,14 @@ security {
     zones {
         security-zone trust {
             interfaces {
-                ge-0/0/1.0 {
+                ge-0/0/1.0 { /* På interface ge-0/0/1 skal al traffik være i zonen trust */
                     host-inbound-traffic {
                         system-services {
                             ping;
                         }
                     }
                 }
-                ge-0/0/2.0 {
+                ge-0/0/2.0 { /* På interface ge-0/0/2 skal al traffik være i zonen trust */
                     host-inbound-traffic {
                         system-services {
                             ping;
@@ -117,7 +118,7 @@ security {
         }
         security-zone untrust {
             interfaces {
-                ge-0/0/3.0 {
+                ge-0/0/3.0 { /* På interface ge-0/0/3 skal al traffik være i zonen untrust */
                     host-inbound-traffic {
                         system-services {
                             ping;
